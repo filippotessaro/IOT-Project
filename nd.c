@@ -26,6 +26,9 @@ struct nd_callbacks app_cb = {
   .callback_turn_off = NULL
   };
 /*---------------------------------------------------------------------------*/
+// STATIC GLOBAL VARIABLES
+static uint8_t epoch = 0;
+/*---------------------------------------------------------------------------*/
 void
 nd_recv(void)
 {
@@ -33,17 +36,16 @@ nd_recv(void)
    * 1. Read packet from packetbuf---packetbuf_dataptr()
    * 2. If a new neighbor is discovered within the epoch, notify the application
    */
-    //printf("RECV\n");
     uint8_t* payload = packetbuf_dataptr();
     uint8_t  neighbor;
     neighbor  = (uint8_t)payload[0];
-    printf("Recv seqn = %u\n", neighbor);
+    //printf("Recv seqn = %u\n", neighbor);
+    app_cb.nd_new_nbr(epoch, neighbor);
 }
 /*---------------------------------------------------------------------------*/
 //Callbacks for on-off
 void
 turn_on_radio_callback(struct rtimer *t, void *ptr){
-  //rtimer_set(t, RTIMER_NOW() + next_turn_off, 0, app_cb.callback_turnoff,NULL);
   NETSTACK_RADIO.on();
 }
 
@@ -51,10 +53,6 @@ void
 turn_off_radio_callback(struct rtimer *t, void *ptr){
   NETSTACK_RADIO.off();
 }
-
-
-
-
 /*---------------------------------------------------------------------------*/
 PROCESS(burst_proc, "Another auxiliary process");
 PROCESS(scatter_proc, "Another auxiliary process");
@@ -83,10 +81,7 @@ PROCESS_THREAD(burst_proc, ev, data)
 {
     PROCESS_BEGIN();
     rtimer_clock_t next;
-    //rtimer_clock_t next_on = RTIMER_SECOND/5;
     rtimer_clock_t next_off = RTIMER_SECOND/20;
-
-    //rtimer_clock_t next_epoch = RTIMER_NOW() + 100 * EPOCH_INTERVAL_RT;
     
     //static struct rtimer rt_on;
     static struct rtimer rt_off;
@@ -125,7 +120,9 @@ PROCESS_THREAD(burst_proc, ev, data)
             
             i++;
         }
-        printf("Pause\n");
+        //printf("Pause\n");
+        app_cb.nd_epoch_end(epoch, 0);
+        epoch++;
         PROCESS_PAUSE();
     }
     
@@ -136,16 +133,15 @@ PROCESS_THREAD(burst_proc, ev, data)
 PROCESS_THREAD(scatter_proc, ev, data)
 {
     PROCESS_BEGIN();
-    rtimer_clock_t next;
-    rtimer_clock_t next_off = RTIMER_SECOND/5;
-    rtimer_clock_t next_transmit_stop = RTIMER_SECOND/20;
-    
-    //static struct rtimer rt_on;
-    static struct rtimer rt_off;
-    
     uint8_t num_task = 4;
-    
     bool we_are_sending = 0;
+
+    
+    rtimer_clock_t next;
+    rtimer_clock_t next_off = RTIMER_SECOND/(num_task+1);
+    rtimer_clock_t next_transmit_stop;
+    
+    static struct rtimer rt_off;
     
     while(1) {
         //printf("Start Epoch\n");
@@ -182,7 +178,9 @@ PROCESS_THREAD(scatter_proc, ev, data)
             
             i++;
         }
-        printf("Pause\n");
+        //printf("Pause\n");
+        app_cb.nd_epoch_end(epoch, 0);
+        epoch++;
         PROCESS_PAUSE();
     }
     
