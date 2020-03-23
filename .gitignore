@@ -1,0 +1,11 @@
+contiki-sky.a
+obj_sky/
+symbols.c
+symbols.h
+COOJA.log
+app.sky
+contiki-sky.map
+test.log
+test_dc.log
+COOJA.testlog
+
