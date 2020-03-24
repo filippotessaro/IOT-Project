@@ -8,4 +8,6 @@ contiki-sky.map
 test.log
 test_dc.log
 COOJA.testlog
+dst*/
+.idea/
 
