@@ -28,6 +28,9 @@ struct nd_callbacks app_cb = {
 /*---------------------------------------------------------------------------*/
 // STATIC GLOBAL VARIABLES
 static uint8_t epoch = 0;
+// Structure of discovered neighbour
+static bool discovered_neighbour[MAX_NBR] = {false};
+//static bool we_are_receiving = 0;
 /*---------------------------------------------------------------------------*/
 void
 nd_recv(void)
@@ -35,12 +38,22 @@ nd_recv(void)
   /* New packet received
    * 1. Read packet from packetbuf---packetbuf_dataptr()
    * 2. If a new neighbor is discovered within the epoch, notify the application
-   */
-    uint8_t* payload = packetbuf_dataptr();
-    uint8_t  neighbor;
-    neighbor  = (uint8_t)payload[0];
-    //printf("Recv seqn = %u\n", neighbor);
-    app_cb.nd_new_nbr(epoch, neighbor);
+   *///if(!we_are_receiving){
+       //we_are_receiving = 1;
+   uint8_t* payload = packetbuf_dataptr();
+   uint8_t  neighbor_id;
+   neighbor_id  = (uint8_t)payload[0];
+   //printf("Recv seqn = %u\n", neighbor);
+    printf("App: Epoch %u New NBR %u\n",
+           epoch, neighbor_id);
+    if(discovered_neighbour[neighbor_id - 1] == false){
+       discovered_neighbour[neighbor_id - 1] = true;
+    }
+       //app_cb.nd_new_nbr(epoch, neighbor);
+       //we_are_receiving = 0;
+
+   //}
+    
 }
 /*---------------------------------------------------------------------------*/
 //Callbacks for on-off
@@ -54,8 +67,10 @@ turn_off_radio_callback(struct rtimer *t, void *ptr){
   NETSTACK_RADIO.off();
 }
 /*---------------------------------------------------------------------------*/
+// Processes declaration
 PROCESS(burst_proc, "Another auxiliary process");
 PROCESS(scatter_proc, "Another auxiliary process");
+/*---------------------------------------------------------------------------*/
 
 
 void
@@ -69,10 +84,7 @@ nd_start(uint8_t mode, const struct nd_callbacks *cb)
     
     printf("ProcessStart\n");
     process_start(&scatter_proc, "burst proc");
-    printf("ProcessEnd\n");
-
-    //}
-    
+    printf("ProcessEnd\n");    
 }
 /*---------------------------------------------------------------------------*/
 //process thread
@@ -83,19 +95,15 @@ PROCESS_THREAD(burst_proc, ev, data)
     rtimer_clock_t next;
     rtimer_clock_t next_off = RTIMER_SECOND/20;
     
-    //static struct rtimer rt_on;
     static struct rtimer rt_off;
     
     uint8_t num_task = 4;
-    
     bool we_are_sending = 0;
     
     while(1) {
-        //printf("Start Epoch\n");
         next = RTIMER_NOW() + RTIMER_SECOND/(num_task+1);
         
         while (RTIMER_CLOCK_LT(RTIMER_NOW(), next)) {
-            //printf("\n");
             if(NETSTACK_RADIO.channel_clear() && we_are_sending == 0 ){
                 we_are_sending = 1;
                 packetbuf_clear();
@@ -121,7 +129,22 @@ PROCESS_THREAD(burst_proc, ev, data)
             i++;
         }
         //printf("Pause\n");
-        app_cb.nd_epoch_end(epoch, 0);
+        
+        uint8_t num_nbr = 0;
+        uint8_t iterator = 0;
+
+
+        // iterate over discovered_neighbour array
+        for(iterator = 0; iterator < MAX_NBR ; iterator++){
+          if (discovered_neighbour[iterator] == true){
+            num_nbr ++;
+            printf("FOR LOOP Node = %u discovered\n", iterator);
+          }
+          // Initialize vector elem
+          discovered_neighbour[iterator] = false;
+        }
+        
+        app_cb.nd_epoch_end(epoch, num_nbr);
         epoch++;
         PROCESS_PAUSE();
     }
@@ -161,11 +184,12 @@ PROCESS_THREAD(scatter_proc, ev, data)
                         
         while (i<num_task) {
             // SENDING MODE
+            // num_task = # of sending interval
             next = RTIMER_NOW() + next_off;
             next_transmit_stop = RTIMER_NOW() + RTIMER_SECOND/50;
             
             while (RTIMER_CLOCK_LT(RTIMER_NOW(), next_transmit_stop)) {
-                //printf("\n");
+                // check if channel is clear and we are not sending
                 if(NETSTACK_RADIO.channel_clear() && we_are_sending == 0 ){
                     we_are_sending = 1;
                     packetbuf_clear();
@@ -179,7 +203,21 @@ PROCESS_THREAD(scatter_proc, ev, data)
             i++;
         }
         //printf("Pause\n");
-        app_cb.nd_epoch_end(epoch, 0);
+        
+        uint8_t num_nbr = 0;
+        uint8_t iterator = 0;
+
+        // iterate over discovered_neighbour array
+        for(iterator = 0; iterator < MAX_NBR ; iterator++){
+          if (discovered_neighbour[iterator] == true){
+            num_nbr ++;
+            printf("FOR LOOP Node = %u discovered\n", iterator);
+          }
+          // Initialize vector elem
+          discovered_neighbour[iterator] = false;
+        }
+        
+        app_cb.nd_epoch_end(epoch, num_nbr);
         epoch++;
         PROCESS_PAUSE();
     }
