@@ -26,19 +26,19 @@ if not os.path.exists(output_dir):
 print("Creating log csv files")
 
 f_neigh = open(output_dir + "/neighbour.csv", 'w+')
-f_neigh.write("time\tnode_ID\tEpoch\tneigh_ID\n")
+f_neigh.write("time,node_ID,Epoch,neigh_ID\n")
 
 f_epoch = open(output_dir + "/epoch.csv", 'w')
-f_epoch.write("time\tnode_ID\tEpoch\tnum_nbr\n")
+f_epoch.write("time,node_ID,Epoch,num_nbr\n")
 
 for line in in_file:
-   print(line)
    if("New NBR" in line):
       '''2132122	ID:1	App: Epoch 0 New NBR 3'''
       line = line.replace("ID:", "")
       line = line.replace("App: Epoch", "")
       line = line.replace("New NBR", "\t")
       line = line.replace(" ", "")
+      line = line.replace("\t", ",")
       f_neigh.write(line)
    elif ("finished Num NBR" in line):
       #parse end epoch
@@ -47,6 +47,7 @@ for line in in_file:
       line = line.replace("App: Epoch", "")
       line = line.replace("finished Num NBR", "\t")
       line = line.replace(" ", "")
+      line = line.replace("\t", ",")
       f_epoch.write(line)
 
 

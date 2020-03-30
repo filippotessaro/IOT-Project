@@ -11,3 +11,7 @@ COOJA.testlog
 dst*/
 .idea/
 
+.Rproj.user
+.RData
+.Rhistory
+IOT-Proj.Rproj

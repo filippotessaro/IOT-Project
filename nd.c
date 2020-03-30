@@ -83,8 +83,12 @@ nd_start(uint8_t mode, const struct nd_callbacks *cb)
     app_cb.callback_turn_off = turn_off_radio_callback;
     
     printf("ProcessStart\n");
-    process_start(&scatter_proc, "burst proc");
-    printf("ProcessEnd\n");    
+    if(mode == ND_BURST){
+        process_start(&burst_proc, "burst proc");
+    } else if (mode == ND_SCATTER){
+        process_start(&scatter_proc, "burst proc");
+    }
+    printf("ProcessEnd\n");
 }
 /*---------------------------------------------------------------------------*/
 //process thread
@@ -93,7 +97,7 @@ PROCESS_THREAD(burst_proc, ev, data)
 {
     PROCESS_BEGIN();
     rtimer_clock_t next;
-    rtimer_clock_t next_off = RTIMER_SECOND/20;
+    rtimer_clock_t next_off = RTIMER_SECOND/100;
     
     static struct rtimer rt_off;
     
@@ -104,7 +108,7 @@ PROCESS_THREAD(burst_proc, ev, data)
         next = RTIMER_NOW() + RTIMER_SECOND/(num_task+1);
         
         while (RTIMER_CLOCK_LT(RTIMER_NOW(), next)) {
-            if(NETSTACK_RADIO.channel_clear() && we_are_sending == 0 ){
+            if(/*NETSTACK_RADIO.channel_clear() &&*/ we_are_sending == 0 ){
                 we_are_sending = 1;
                 packetbuf_clear();
                 NETSTACK_RADIO.send(&node_id, sizeof(uint8_t));
@@ -122,7 +126,8 @@ PROCESS_THREAD(burst_proc, ev, data)
             NETSTACK_RADIO.on();
             rtimer_set(&rt_off, RTIMER_NOW() + next_off, 0, app_cb.callback_turn_off,NULL);
             
-            next = RTIMER_NOW() + RTIMER_SECOND/(num_task+1);
+            // modifica qui
+            next = RTIMER_NOW() + (RTIMER_SECOND/(num_task+1))/2;
             
             while (RTIMER_CLOCK_LT(RTIMER_NOW(), next)) {}
             
@@ -138,7 +143,6 @@ PROCESS_THREAD(burst_proc, ev, data)
         for(iterator = 0; iterator < MAX_NBR ; iterator++){
           if (discovered_neighbour[iterator] == true){
             num_nbr ++;
-            printf("FOR LOOP Node = %u discovered\n", iterator);
           }
           // Initialize vector elem
           discovered_neighbour[iterator] = false;
@@ -162,7 +166,7 @@ PROCESS_THREAD(scatter_proc, ev, data)
     
     rtimer_clock_t next;
     rtimer_clock_t next_off = RTIMER_SECOND/(num_task+1);
-    rtimer_clock_t next_transmit_stop;
+    //rtimer_clock_t next_transmit_stop;
     
     static struct rtimer rt_off;
     
@@ -186,17 +190,19 @@ PROCESS_THREAD(scatter_proc, ev, data)
             // SENDING MODE
             // num_task = # of sending interval
             next = RTIMER_NOW() + next_off;
-            next_transmit_stop = RTIMER_NOW() + RTIMER_SECOND/50;
+            //next_transmit_stop = RTIMER_NOW() + RTIMER_SECOND/50;
             
-            while (RTIMER_CLOCK_LT(RTIMER_NOW(), next_transmit_stop)) {
+            //while (RTIMER_CLOCK_LT(RTIMER_NOW(), next_transmit_stop)) {
                 // check if channel is clear and we are not sending
-                if(NETSTACK_RADIO.channel_clear() && we_are_sending == 0 ){
-                    we_are_sending = 1;
-                    packetbuf_clear();
-                    NETSTACK_RADIO.send(&node_id, sizeof(uint8_t));
-                    we_are_sending = 0;
-                }
+            
+            // Send only one beacon
+            if(NETSTACK_RADIO.channel_clear() && we_are_sending == 0 ){
+                we_are_sending = 1;
+                packetbuf_clear();
+                NETSTACK_RADIO.send(&node_id, sizeof(uint8_t));
+                we_are_sending = 0;
             }
+            //}
             //wait until next task
             while (RTIMER_CLOCK_LT(RTIMER_NOW(), next)) {}
             
