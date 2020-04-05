@@ -27,8 +27,13 @@ struct nd_callbacks app_cb = {
   };
 /*---------------------------------------------------------------------------*/
 // STATIC GLOBAL VARIABLES
+/* epoch counter */
 static uint8_t epoch = 0;
-// Structure of discovered neighbour
+
+/* max epoch iteration */
+static uint8_t max_epoch_num = 150;
+
+/* Structure of discovered neighbour */
 static bool discovered_neighbour[MAX_NBR] = {false};
 //static bool we_are_receiving = 0;
 /*---------------------------------------------------------------------------*/
@@ -104,9 +109,11 @@ PROCESS_THREAD(burst_proc, ev, data)
     uint8_t num_task = 4;
     bool we_are_sending = 0;
     
-    while(1) {
+    while(epoch <= max_epoch_num) {
+        /* next turn radio on */
         next = RTIMER_NOW() + RTIMER_SECOND/(num_task+1);
         
+        /* keep sending untile rtimer expires */
         while (RTIMER_CLOCK_LT(RTIMER_NOW(), next)) {
             if(/*NETSTACK_RADIO.channel_clear() &&*/ we_are_sending == 0 ){
                 we_are_sending = 1;
@@ -121,7 +128,7 @@ PROCESS_THREAD(burst_proc, ev, data)
         // ON : NOW() -> NOW + RTIMER_SECOND/5 -> NOW + RTIMER_SECOND/5 * i
         // OFF : NOW + NEXT_TURN_OFF -> NOW + NEXT_TURN_OFF +
                 
-        while (i<num_task) {
+        while (i<num_task * 2) {
             //printf("i:%d \n", i);
             NETSTACK_RADIO.on();
             rtimer_set(&rt_off, RTIMER_NOW() + next_off, 0, app_cb.callback_turn_off,NULL);
@@ -170,7 +177,7 @@ PROCESS_THREAD(scatter_proc, ev, data)
     
     static struct rtimer rt_off;
     
-    while(1) {
+    while(epoch <= max_epoch_num) {
         //printf("Start Epoch\n");
         next = RTIMER_NOW() + next_off;
         
