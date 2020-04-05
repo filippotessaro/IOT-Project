@@ -34,20 +34,34 @@ in_dir = args$i
 print(in_dir)
 
 #------------------------------------------
+# Read line file
+processFile = function(filepath) {
+  con = file(filepath, "r")
+  while ( TRUE ) {
+    line = readLines(con, n = 1)
+    if ( length(line) == 0 ) {
+      break
+    }
+    print(line)
+  }
+  
+  close(con)
+}
 
 
+#-------------------------------------
 
 df <- read.table("../dst_test/epoch.csv", 
                  header = TRUE,
                  sep = ",")
 
 # list of nodes
-nodes = c(1,2)
+nodes = c(2, 5, 10, 20, 30, 50)
 
 
 # computes the offered load
 neighbour.discovery.rate <- function(df, ID, lower.bound, upper.bound) {
-  temp.df = subset(df, (node_ID == ID & Epoch >= lower.bound & Epoch <= upper.bound))
+  temp.df = subset(df, ( Epoch >= lower.bound & Epoch <= upper.bound))
   
   return(temp.df)
 }
@@ -64,6 +78,57 @@ pcr <- ggplot(filtered.df, aes(x=Epoch, y=num_nbr, colour=node_ID)) +
 #ggsave(paste(res.folder, '/normal-pcr_', n.nodes, '.pdf', sep=''), width=16/div, height=9/div)
 print(pcr)
 
-by_cyl <- filtered.df %>% group_by(node_ID) %>% summarise(num_nbr = mean(num_nbr), var_num_nbr = var(num_nbr))
+by_cyl <- filtered.df %>% group_by(Epoch) %>% summarise(num_nbr = sum(num_nbr), var_num_nbr = var(num_nbr))
+
+
+#-------------------------------------
+#--------------------------------------
+
+df <- data.frame()
+
+nodes = c(2, 5, 10, 20) # test
+#nodes = c(2, 5, 10, 20, 30, 50)
+
+
+for(i in nodes){
+  print(paste("Preproc file:",i, sep=" "))
+  file.name = paste(i,"epoch.csv",sep="")
+  print(file.name)
+  temp.df = read.table(paste("../dst_test/", file.name, sep=""),
+                       header = TRUE,
+                       sep = ",")
+  temp.df$config_nodes = rep(i, nrow(temp.df))
+  
+  # if first time 
+  # bind cols names
+  if (length(df) == 0){
+    df = temp.df
+  }
+  
+}
+
+# remove first 10 epoch and over 100
+filtered.df = neighbour.discovery.rate(df,1,10,100)
+
+by_epoch <- filtered.df %>% group_by(config_nodes, Epoch) %>% summarise(num_nbr = sum(num_nbr))
+
+by_epoch <- by_epoch %>% group_by(config_nodes) %>% summarise(avg = mean(num_nbr))
+
+group_by(filtered.df, config_nodes, Epoch) %>% 
+  summarise(GroupVariance=var(num_nbr), TotalCount=sum(num_nbr))
+
+
+pcr <- ggplot(filtered.df, aes(x=Epoch, y=num_nbr, colour=node_ID)) +
+  geom_line() +
+  geom_point() +
+  xlab('# epoch') +
+  ylab('# discovered neighbour') +
+  labs(color="ID")
+#ylim(c(0, 1))
+#ggsave(paste(res.folder, '/normal-pcr_', n.nodes, '.pdf', sep=''), width=16/div, height=9/div)
+print(pcr)
+
+
+
 
 
