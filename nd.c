@@ -34,6 +34,8 @@ static uint8_t epoch = 0;
 /* it has to be less than 10 */
 static uint8_t curr_task = 0;
 
+static uint8_t num_task = 10;
+
 /* max epoch iteration */
 static uint8_t max_epoch_num = 150;
 
@@ -42,7 +44,6 @@ static bool discovered_neighbour[MAX_NBR];
 
 static rtimer_clock_t next;
 static rtimer_clock_t next_off = RTIMER_SECOND/100 ;
-//static rtimer_clock_t next_on;
 static struct rtimer rt_off;
 
 /*---------------------------------------------------------------------------*/
@@ -79,11 +80,11 @@ turn_off_radio_callback(struct rtimer *t, void *ptr){
     curr_task++;
     
     // if task <10
-    if(curr_task<10){
+    if(curr_task < num_task){
         // schedule ON
-        rtimer_set(t, RTIMER_NOW() + (RTIMER_SECOND/10 - next_off), 0, app_cb.callback_turn_on,NULL);
+        rtimer_set(t, RTIMER_NOW() + (RTIMER_SECOND/num_task - next_off), 0, app_cb.callback_turn_on,NULL);
     }else{
-        rtimer_set(t, RTIMER_NOW() + (RTIMER_SECOND/10 - next_off), 0, app_cb.callback_end_epoch,NULL);
+        rtimer_set(t, RTIMER_NOW() + (RTIMER_SECOND/num_task - next_off), 0, app_cb.callback_end_epoch,NULL);
     }
     
     // else end_epoch
@@ -132,7 +133,6 @@ nd_start(uint8_t mode, const struct nd_callbacks *cb)
     } else if (mode == ND_SCATTER){
         process_start(&scatter_proc, "burst proc");
     }
-    //printf("ProcessEnd\n");
 }
 /*---------------------------------------------------------------------------*/
 //process thread
@@ -141,54 +141,33 @@ PROCESS_THREAD(burst_proc, ev, data)
 {
     PROCESS_BEGIN();
     
-    uint8_t num_task = 10;
     bool we_are_sending = 0;
     
-    //while(epoch <= max_epoch_num) {
-        /* next turn radio on */
-        next = RTIMER_NOW() + RTIMER_SECOND/num_task;
-        int num_packets = 0;
-                
-        /* keep sending untile rtimer expires */
-        while (RTIMER_CLOCK_LT(RTIMER_NOW(), next)) {
-            if( we_are_sending==0){
-                we_are_sending = 1;
-                //packetbuf_clear();
-                NETSTACK_RADIO.send(&node_id, sizeof(uint8_t));
-                we_are_sending = 0;
-                num_packets++;
-            }
-            rtimer_clock_t rnow = RTIMER_NOW();
-            while (RTIMER_CLOCK_LT( RTIMER_NOW(), rnow + RTIMER_SECOND / 100)) {};
+    /* next turn radio on */
+    next = RTIMER_NOW() + RTIMER_SECOND/num_task;
+    int num_packets = 0;
+            
+    /* keep sending untile rtimer expires */
+    while (RTIMER_CLOCK_LT(RTIMER_NOW(), next)) {
+        if( we_are_sending==0){
+            we_are_sending = 1;
+            //packetbuf_clear();
+            NETSTACK_RADIO.send(&node_id, sizeof(uint8_t));
+            we_are_sending = 0;
+            num_packets++;
         }
+        rtimer_clock_t rnow = RTIMER_NOW();
         
-//        uint8_t i = 0;
-        printf("Sent Packets: %d\n", num_packets);
-        rtimer_set(&rt_off, RTIMER_NOW() + next_off, 0, app_cb.callback_turn_off,NULL);
-//
-//        // ON : NOW() -> NOW + RTIMER_SECOND/5 -> NOW + RTIMER_SECOND/5 * i
-//        // OFF : NOW + NEXT_TURN_OFF -> NOW + NEXT_TURN_OFF +
-//
-//        while (i<num_task * 2) {
-//            //printf("i:%d \n", i);
-//
-//            rtimer_set(&rt_off, RTIMER_NOW() + next_off, 0, app_cb.callback_turn_off,NULL);
-//            NETSTACK_RADIO.on();
-//            // modifica qui
-//            next = RTIMER_NOW() + (RTIMER_SECOND/(num_task))/2;
-//
-//            while (RTIMER_CLOCK_LT(RTIMER_NOW(), next)) {}
-//
-//            i++;
-//        }
-//        //printf("Pause\n");
-//
-        
-        //PROCESS_PAUSE();
-    //}
+        /* wait next transmission */
+        while (RTIMER_CLOCK_LT( RTIMER_NOW(), rnow + RTIMER_SECOND / 150)) {};
+    }
     
-
-  PROCESS_END();
+    printf("Sent Packets: %d\n", num_packets);
+    
+    /* schedule next turn-off */
+    rtimer_set(&rt_off, RTIMER_NOW() + next_off, 0, app_cb.callback_turn_off,NULL);
+    
+    PROCESS_END();
 }
 
 PROCESS_THREAD(scatter_proc, ev, data)
