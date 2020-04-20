@@ -53,7 +53,7 @@ PROCESS_THREAD(app_process, ev, data)
 
   /* Start ND Primitive */
   nd_start(ND_BURST, &rcb);
-  /* nd_start(ND_SCATTER, &rcb); */
+  //nd_start(ND_SCATTER, &rcb);
 
   /* Do nothing else */
   while (1) {
