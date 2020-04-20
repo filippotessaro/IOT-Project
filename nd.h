@@ -18,6 +18,7 @@ struct nd_callbacks {
   void (* nd_epoch_end)(uint16_t epoch, uint8_t num_nbr);
   void (* callback_turn_on)(struct rtimer *t, void *ptr);
   void (* callback_turn_off)(struct rtimer *t, void *ptr);
+    void (* callback_end_epoch)(struct rtimer *t, void *ptr);
 };
 /*---------------------------------------------------------------------------*/
 /* Start selected ND primitive (ND_BURST or ND_SCATTER) */
