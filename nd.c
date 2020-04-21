@@ -38,7 +38,7 @@ static uint8_t curr_task = 0;
 static uint8_t num_task = 10;
 
 /* max epoch iteration */
-static uint8_t max_epoch_num = 150;
+static uint8_t max_epoch_num = 130;
 
 /* Structure of discovered neighbour */
 static bool discovered_neighbour[MAX_NBR];
@@ -48,7 +48,7 @@ static rtimer_clock_t next_off = RTIMER_SECOND/100 ;
 static rtimer_clock_t next_send;
 static struct rtimer rt_off;
 
-static bool m; // scatter = false  burst = true
+static bool m; // scatter = false , burst = true
 
 /*---------------------------------------------------------------------------*/
 void
@@ -101,7 +101,6 @@ turn_on_radio_callback(struct rtimer *t, void *ptr){
         rtimer_set(t, RTIMER_NOW() + next_off, 0, app_cb.callback_turn_off,NULL);
     } else{
         /* scatter mode */
-        //printf("Scatter");
         rtimer_set(t, RTIMER_NOW() + next_send, 0, app_cb.callback_send_packet,NULL);
     }
 }
@@ -114,7 +113,6 @@ turn_off_radio_callback(struct rtimer *t, void *ptr){
     // if task <10
     if(curr_task < num_task){
         // schedule ON
-        printf("scheduel on\n");
         rtimer_set(t, RTIMER_NOW() + (RTIMER_SECOND/num_task - next_off), 0, app_cb.callback_turn_on, NULL);
     }else{
         rtimer_set(t, RTIMER_NOW() + (RTIMER_SECOND/num_task - next_off), 0, app_cb.callback_end_epoch,NULL);
@@ -145,12 +143,16 @@ end_epoch_callback(struct rtimer *t, void *ptr){
     // restart process
     printf("Restart process\n");
     curr_task = 0;
-    if(m){
-        process_start(&burst_proc, "burst proc");
-    }else{
-        process_start(&scatter_proc, "scatter proc");
-
+    if(epoch<max_epoch_num){
+        if(m){
+            process_start(&burst_proc, "burst proc");
+        }else{
+            process_start(&scatter_proc, "scatter proc");
+        }
+    }else {
+        printf("Simulation Finished\n");
     }
+    
 }
 
 /*---------------------------------------------------------------------------*/
@@ -200,7 +202,7 @@ PROCESS_THREAD(burst_proc, ev, data)
         rtimer_clock_t rnow = RTIMER_NOW();
         
         /* wait next transmission */
-        while (RTIMER_CLOCK_LT( RTIMER_NOW(), rnow + RTIMER_SECOND / 150)) {};
+        while (RTIMER_CLOCK_LT( RTIMER_NOW(), rnow + RTIMER_SECOND / 350)) {};
     }
     
     printf("Sent Packets: %d\n", num_packets);
