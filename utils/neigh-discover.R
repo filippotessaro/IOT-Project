@@ -13,11 +13,11 @@ parser <- ArgumentParser()
 # by default ArgumentParser will add an help option 
 
 parser$add_argument("-i", "--in_dir",
-                     help="Input csv Folder")
+                     help="Input csv Folder", default="../dst_test/burst_20task_100off_250send")
 parser$add_argument("-o", "--out_dir", 
-                    help="Output Plot and result Folder")
-parser$add_argument("-n", "--node", type="integer", default=2, 
-                    help="Number of processed nodes")
+                    help="Output Plot and result Folder", default ="../dst_test/out")
+parser$add_argument("-m", "--mode", default="scatter", 
+                    help="Burst or Scatter")
 
 parser$add_argument("-l", "--lower", type="integer", default=10, 
                     help="Lower epoch Bound")
@@ -31,6 +31,9 @@ args <- parser$parse_args()
 
 # print some progress messages to stderr if "quietly" wasn't requested
 
+in.folder <- args$i
+res.folder <- args$o
+mode <- args$m
 
 in_dir = args$i
 print(in_dir)
@@ -77,7 +80,7 @@ for (j in sims){
     
     print(paste("Preproc file:",i, sep=" "))
     file.name = paste(i,"epoch.csv",sep="")
-    folder = paste("../dst_test/burst_20task_100off_250send_sim", j, sep="")
+    folder = paste(in.folder, "_sim", j, sep="")
     folder = paste(folder, "/", sep="")
     print(file.name)
     temp.df = read.table(paste(folder, file.name, sep=""),
@@ -111,7 +114,7 @@ nodeslabel = c("2 Nodes", "5 Nodes", "10 Nodes", "20 Nodes", "30 Nodes", "50 Nod
 
 by_count <- filtered.df %>% group_by(config_nodes, Epoch) %>% summarise(num_nbr = sum(num_nbr))
 
-tibble(nodeslabel, by_epoch$avg) %>% 
+p <- tibble(nodeslabel, by_epoch$avg) %>% 
   mutate(lab_loc = by_epoch$avg
          , col = factor(sign(by_epoch$avg))) %>% 
   ggplot(aes(x =  reorder(nodeslabel, by_epoch$config_nodes) , y = by_epoch$percentage)) +
@@ -124,7 +127,7 @@ tibble(nodeslabel, by_epoch$avg) %>%
   ggtitle('Neighbour Dicovery Rate') +
   theme(plot.title = element_text(hjust = 0.5), legend.position = "none")
 
-# *************************************************
+ggsave(paste(res.folder, '/neigh_', mode , '.pdf', sep=''))# *************************************************
 # *
 # * DC analysis part
 # *
@@ -142,7 +145,9 @@ for (j in sims){
     #print(file.name)
     
     file.name = paste(i,"power.log",sep="")
-    folder = paste("../dst_test/burst_20task_100off_250send_sim", j, sep="")
+    #folder = paste(in.folder, j, sep="")
+    folder = paste(in.folder, "_sim", j, sep="")
+    
     folder = paste(folder, "/raw/", sep="")
     print(file.name)
     
@@ -180,20 +185,19 @@ dc.df <- dc.df %>% group_by(config_nodes) %>% summarise(AVG_ON = mean(as.numeric
 
 
 
-tibble(nodeslabel, statistics$AVG_ON) %>% 
-  mutate(lab_loc = statistics$AVG_ON
-         , col = factor(sign(statistics$AVG_ON))) %>% 
-  ggplot(aes(x =  reorder(nodeslabel, statistics$config_nodes) , y = statistics$AVG_ON)) +
+tibble(nodeslabel, dc.df$AVG_ON) %>% 
+  mutate(lab_loc = dc.df$AVG_ON
+         , col = factor(sign(dc.df$AVG_ON))) %>% 
+  ggplot(aes(x =  reorder(nodeslabel, dc.df$config_nodes) , y = dc.df$AVG_ON)) +
   geom_col(aes(fill = col)) +
-  geom_label(aes(label = round(statistics$AVG_ON, 2)), position = position_stack(vjust = 1.0)) +
-  #geom_text(aes(label = round(by_epoch$avg, 2)), color = "white", size = 4, position = position_stack(vjust = 0.5)) +
-  #scale_fill_manual(name = 'sign', values = c('1' = '#6FAA46')) +
+  geom_label(aes(label = round(dc.df$AVG_ON, 2)), position = position_stack(vjust = 1.0)) +
   ylab('Percentage') +
   xlab('Nodes') +
   ggtitle('AVG ON') +
   ylim(0, 100) +
   theme(plot.title = element_text(hjust = 0.5), legend.position = "none")
 
+ggsave(paste(res.folder, '/avgON_', mode , '.pdf', sep=''))# *************************************************
 
 
 #ggplot(data = dc.df, aes(x = dc.df$config_nodes , y = dc.df$X1)) +
