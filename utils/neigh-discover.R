@@ -16,7 +16,7 @@ parser$add_argument("-i", "--in_dir",
                      help="Input csv Folder", default="../dst_test/burst_20task_100off_250send")
 parser$add_argument("-o", "--out_dir", 
                     help="Output Plot and result Folder", default ="../dst_test/out")
-parser$add_argument("-m", "--mode", default="scatter", 
+parser$add_argument("-m", "--mode", default="burst", 
                     help="Burst or Scatter")
 
 parser$add_argument("-l", "--lower", type="integer", default=10, 

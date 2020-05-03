@@ -35,7 +35,7 @@ static uint8_t epoch = 0;
 /* it has to be less than 10 */
 static uint8_t curr_task = 0;
 
-static uint8_t num_task = 20;
+static uint8_t num_task = 5;
 
 /* max epoch iteration */
 static uint8_t max_epoch_num = 130;
