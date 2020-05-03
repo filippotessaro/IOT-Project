@@ -1,5 +1,7 @@
 library(ggplot2)
 library(dplyr)
+library(tidyverse)
+
 suppressPackageStartupMessages(library("argparse"))
 
 
@@ -48,45 +50,14 @@ processFile = function(filepath) {
   close(con)
 }
 
-
-#-------------------------------------
-
-df <- read.table("../dst_test/epoch.csv", 
-                 header = TRUE,
-                 sep = ",")
-
-# list of nodes
-nodes = c(2, 5, 10, 20, 30, 50)
-
-
-# computes the offered load
-neighbour.discovery.rate <- function(df, ID, lower.bound, upper.bound) {
-  temp.df = subset(df, ( Epoch >= lower.bound & Epoch <= upper.bound))
-  
-  return(temp.df)
-}
-
-filtered.df = neighbour.discovery.rate(df,1,10,100)
-
-pcr <- ggplot(filtered.df, aes(x=Epoch, y=num_nbr, colour=node_ID)) +
-  geom_line() +
-  geom_point() +
-  xlab('# epoch') +
-  ylab('# discovered neighbour') +
-  labs(color="ID")
-#ylim(c(0, 1))
-#ggsave(paste(res.folder, '/normal-pcr_', n.nodes, '.pdf', sep=''), width=16/div, height=9/div)
-print(pcr)
-
-by_cyl <- filtered.df %>% group_by(Epoch) %>% summarise(num_nbr = sum(num_nbr), var_num_nbr = var(num_nbr))
-
-
-#-------------------------------------
-#--------------------------------------
+# *************************************************
+# *
+# * DATA PRE-RPOCESSING AND PLOTTING
+# *
+# *************************************************
 
 df <- data.frame()
 
-#nodes = c(2, 5, 10, 20) # test
 nodes = c(2, 5, 10, 20, 30, 50)
 
 # computes the offered load
@@ -101,7 +72,7 @@ for(i in nodes){
   print(paste("Preproc file:",i, sep=" "))
   file.name = paste(i,"epoch.csv",sep="")
   print(file.name)
-  temp.df = read.table(paste("../dst_test/normal_tx_10task/", file.name, sep=""),
+  temp.df = read.table(paste("../dst_test/burst_20task_100off_150send/", file.name, sep=""),
                        header = TRUE,
                        sep = ",")
   temp.df$config_nodes = rep(i, nrow(temp.df))
@@ -117,40 +88,105 @@ for(i in nodes){
 }
 
 # remove first 10 epoch and over 100
-filtered.df = neighbour.discovery.rate(df,1,10,100)
+filtered.df <- neighbour.discovery.rate(df,1,10,100)
 
-# summarise by nodes and not in percentages
-# by_epoch <- filtered.df %>% group_by(config_nodes, Epoch) %>% summarise(num_nbr = num <- sum(num_nbr))
+by_epoch <- filtered.df %>% 
+  group_by(config_nodes) %>% 
+  summarise(avg = mean(num_nbr), variance = var(num_nbr))
 
-by_epoch <- filtered.df %>% group_by(config_nodes, Epoch) %>% summarise(num_nbr = num <- (sum(num_nbr)/mean(config_nodes))*100)
-
-by_epoch <- by_epoch %>% group_by(config_nodes) %>% summarise(avg = mean(num_nbr))
-
-#group_by(filtered.df, config_nodes, Epoch) %>% 
-  #summarise(GroupVariance=var(num_nbr), TotalCount=sum(num_nbr))
+by_epoch <- by_epoch %>% 
+  mutate(percentage = avg/(config_nodes-1) * 100)
 
 nodeslabel = c("2 Nodes", "5 Nodes", "10 Nodes", "20 Nodes", "30 Nodes", "50 Nodes")
- 
-#counts <- table(by_epoch$avg)
-xx <- barplot(by_epoch$avg, main="Neighbour Dicovery Rate",names.arg=nodeslabel, horiz=FALSE, cex.names=0.7)
-## Add text at top of bars
-#abline(h=0)
-text(x = xx, y = by_epoch$avg, label = as.integer(by_epoch$avg), pos=3, col = "red")
-
-
-library(tidyverse)
 
 by_count <- filtered.df %>% group_by(config_nodes, Epoch) %>% summarise(num_nbr = sum(num_nbr))
-
 
 tibble(nodeslabel, by_epoch$avg) %>% 
   mutate(lab_loc = by_epoch$avg
          , col = factor(sign(by_epoch$avg))) %>% 
-  ggplot(aes(x =  reorder(nodeslabel, -by_epoch$avg) , y = by_epoch$avg)) +
+  ggplot(aes(x =  reorder(nodeslabel, by_epoch$config_nodes) , y = by_epoch$percentage)) +
   geom_col(aes(fill = col)) +
-  geom_label(aes(y = lab_loc, label = round(by_epoch$avg, 2))) +
+  geom_label(aes(y = lab_loc, label = round(by_epoch$percentage, 2))) +
+  geom_text(aes(y = lab_loc, label = round(by_epoch$avg, 2)), color = "white", size = 4, position = position_stack(vjust = 0.5)) +
   scale_fill_manual(name = 'sign', values = c('1' = '#6FAA46')) +
   ylab('Percentage') +
   xlab('Nodes') +
   ggtitle('Neighbour Dicovery Rate') +
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "none")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# *************************************************
+# *
+# * DC analysis part
+# *
+# *************************************************
+col_headings <- c('Nodes','AVG_ON', 'AVG_TX', 'AVG_RX', 'AVG_INT')
+dc.df <- data.frame()
+
+#names(dc.df) <- col_headings
+#data.frame(Nodes=NA, AVG_ON=NA, AVG_TX=NA, AVG_RX=NA, AVG_INT=NA)[numeric(0), ]
+
+
+for(i in nodes){
+  print(paste("Preproc file:",i, sep=" "))
+  file.name = paste(i,"power.log",sep="")
+  print(file.name)
+  file.name = paste("../dst_test/scatter/scatter_30task/raw/", file.name, sep="")
+  
+  temp.df <- data.frame()
+  
+  con <- file(file.name, "r")
+  lines.list <- readLines(con,n=4)
+  list.vals <- list()
+  
+  for(line in lines.list){
+    tmp.list <- unlist(strsplit(line, " "))
+    #list.vals
+    print(tmp.list[5])
+    list.vals[length(list.vals) +1 ] <- tmp.list[5]
+  }
+  close(con)
+  
+  temp.df <- data.frame(matrix(unlist(list.vals), nrow=1, byrow=F))
+  
+  temp.df$config_nodes = rep(i, nrow(temp.df))
+  
+  # if first time 
+  # bind cols names
+  dc.df <- rbind(dc.df, temp.df)
+  
+  
+}
+
+library(dplyr)
+dc.df %>% 
+  mutate_all(funs(as.numeric(as.numeric(.))))
+
+
+ggplot(data = dc.df, aes(x = dc.df$config_nodes , y = dc.df$X1)) +
+geom_col(aes(fill = dc.df$config_nodes)) +
+#geom_label(aes(y = lab_loc, label = round(dc.df$X1, 2))) +
+#geom_label(aes(y = lab_loc, label = round(by_epoch$percentage, 2))) +
+#geom_text(aes(y = lab_loc, label = round(by_epoch$avg, 2)), color = "white", size = 4, position = position_stack(vjust = 0.5)) +
+#scale_fill_manual(name = 'sign', values = c('1' = '#6FAA46')) +
+ylab('AVG ON') +
+xlab('Nodes') +
+ggtitle('AVG On') +
+theme(plot.title = element_text(hjust = 0.5), legend.position = "none")
+  

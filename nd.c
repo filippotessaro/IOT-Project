@@ -35,7 +35,7 @@ static uint8_t epoch = 0;
 /* it has to be less than 10 */
 static uint8_t curr_task = 0;
 
-static uint8_t num_task = 10;
+static uint8_t num_task = 20;
 
 /* max epoch iteration */
 static uint8_t max_epoch_num = 130;
@@ -46,7 +46,7 @@ static bool discovered_neighbour[MAX_NBR];
 static rtimer_clock_t next;
 static rtimer_clock_t next_off = RTIMER_SECOND/100 ;
 static rtimer_clock_t next_send;
-static struct rtimer rt_off;
+//static struct rtimer rt_off;
 
 static bool m; // scatter = false , burst = true
 
@@ -183,6 +183,8 @@ nd_start(uint8_t mode, const struct nd_callbacks *cb)
 PROCESS_THREAD(burst_proc, ev, data)
 {
     PROCESS_BEGIN();
+    static struct rtimer rt_off;
+
     
     bool we_are_sending = 0;
     
@@ -202,7 +204,7 @@ PROCESS_THREAD(burst_proc, ev, data)
         rtimer_clock_t rnow = RTIMER_NOW();
         
         /* wait next transmission */
-        while (RTIMER_CLOCK_LT( RTIMER_NOW(), rnow + RTIMER_SECOND / 350)) {};
+        while (RTIMER_CLOCK_LT( RTIMER_NOW(), rnow + RTIMER_SECOND / 150)) {};
     }
     
     printf("Sent Packets: %d\n", num_packets);
@@ -218,6 +220,8 @@ PROCESS_THREAD(burst_proc, ev, data)
 PROCESS_THREAD(scatter_proc, ev, data)
 {
     PROCESS_BEGIN();
+    
+    static struct rtimer rt_off;
     
     //rtimer_clock_t next;
     //rtimer_clock_t next_off = RTIMER_SECOND/num_task;
