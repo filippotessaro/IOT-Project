@@ -1,7 +1,7 @@
 import os
 
 nodes_list = [2, 5, 10, 20, 30, 50]
-experiment = 5
+experiment = 15
 
 
 os.system("make clean; make")

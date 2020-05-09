@@ -12,5 +12,5 @@ for nodes in nodes_list:
         print("Run Test:", sim_num, "\n")
         os.system('cooja_nogui nd-test-mrm-' + str(nodes) + 'n.csc')
         print("Simulation ended storing...")
-        os.system("python3 ./utils/arg-parser.py -i test.log -d dst_test/burst_20task_100off_250send_sim" + str(sim_num) + "/ -n " + str(nodes) + "  -c ./test_dc.log -r dst_test/burst_20task_100off_250send_sim" + str(sim_num) + "/raw")
+        os.system("python3 ./utils/arg-parser.py -i test.log -d dst_test/burst_20task_100off_350send_sim" + str(sim_num) + "/ -n " + str(nodes) + "  -c ./test_dc.log -r dst_test/burst_20task_100off_350send_sim" + str(sim_num) + "/raw")
 

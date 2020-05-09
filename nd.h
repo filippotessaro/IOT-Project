@@ -14,10 +14,10 @@ void nd_recv(void); /* Called by lower layers when a message is received */
  *				  at the end of the epoch
  */
 struct nd_callbacks {
-  void (* nd_new_nbr)(uint16_t epoch, uint8_t nbr_id);
-  void (* nd_epoch_end)(uint16_t epoch, uint8_t num_nbr);
-  void (* callback_turn_on)(struct rtimer *t, void *ptr);
-  void (* callback_turn_off)(struct rtimer *t, void *ptr);
+    void (* nd_new_nbr)(uint16_t epoch, uint8_t nbr_id);
+    void (* nd_epoch_end)(uint16_t epoch, uint8_t num_nbr);
+    void (* callback_turn_on)(struct rtimer *t, void *ptr);
+    void (* callback_turn_off)(struct rtimer *t, void *ptr);
     void (* callback_end_epoch)(struct rtimer *t, void *ptr);
     void (* callback_send_packet)(struct rtimer *t, void *ptr);
 };

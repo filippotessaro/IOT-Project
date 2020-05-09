@@ -13,10 +13,10 @@ parser <- ArgumentParser()
 # by default ArgumentParser will add an help option 
 
 parser$add_argument("-i", "--in_dir",
-                     help="Input csv Folder", default="../dst_test/burst_20task_100off_250send")
+                     help="Input csv Folder", default="../dst_test/scatter_20task")
 parser$add_argument("-o", "--out_dir", 
                     help="Output Plot and result Folder", default ="../dst_test/out")
-parser$add_argument("-m", "--mode", default="burst", 
+parser$add_argument("-m", "--mode", default="scatter", 
                     help="Burst or Scatter")
 
 parser$add_argument("-l", "--lower", type="integer", default=10, 
@@ -102,6 +102,10 @@ for (j in sims){
 
 # remove first 10 epoch and over 100
 filtered.df <- neighbour.discovery.rate(df,1,10,100)
+
+by_epoch <- filtered.df %>% 
+  group_by(config_nodes, Epoch) %>% 
+  summarise(avg = mean(num_nbr), variance = var(num_nbr))
 
 by_epoch <- filtered.df %>% 
   group_by(config_nodes) %>% 

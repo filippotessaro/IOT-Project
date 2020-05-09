@@ -28,14 +28,14 @@ struct nd_callbacks app_cb = {
     .callback_send_packet = NULL
   };
 /*---------------------------------------------------------------------------*/
-// STATIC GLOBAL VARIABLES
+/* STATIC GLOBAL VARIABLES */
 /* epoch counter */
 static uint8_t epoch = 0;
 
 /* it has to be less than 10 */
 static uint8_t curr_task = 0;
 
-static uint8_t num_task = 5;
+static uint8_t num_task = 15;
 
 /* max epoch iteration */
 static uint8_t max_epoch_num = 130;
@@ -46,7 +46,6 @@ static bool discovered_neighbour[MAX_NBR];
 static rtimer_clock_t next;
 static rtimer_clock_t next_off = RTIMER_SECOND/100 ;
 static rtimer_clock_t next_send;
-//static struct rtimer rt_off;
 
 static bool m; // scatter = false , burst = true
 
@@ -67,7 +66,7 @@ nd_recv(void)
         
 }
 /*---------------------------------------------------------------------------*/
-// Processes declaration
+/* Processes declaration */
 PROCESS(burst_proc, "Another auxiliary process");
 PROCESS(scatter_proc, "Another auxiliary process");
 /*---------------------------------------------------------------------------*/
@@ -78,7 +77,6 @@ send_packet_callback(struct rtimer *t, void *ptr){
     
     /* check current task */
     if(curr_task < num_task){
-        //printf("Schedule cur task send_packet_callback\n");
         /* schedule next tun radio on */
         rtimer_set(t, RTIMER_NOW() + next_send, 0, app_cb.callback_send_packet,NULL);
     }else{
@@ -90,7 +88,6 @@ send_packet_callback(struct rtimer *t, void *ptr){
     NETSTACK_RADIO.send(&node_id, sizeof(uint8_t));
     
     /* turn radio off */
-    //NETSTACK_RADIO.off();
 }
 //Callbacks for on-off
 void
@@ -110,37 +107,33 @@ turn_off_radio_callback(struct rtimer *t, void *ptr){
     NETSTACK_RADIO.off();
     curr_task++;
     
-    // if task <10
     if(curr_task < num_task){
         // schedule ON
         rtimer_set(t, RTIMER_NOW() + (RTIMER_SECOND/num_task - next_off), 0, app_cb.callback_turn_on, NULL);
     }else{
         rtimer_set(t, RTIMER_NOW() + (RTIMER_SECOND/num_task - next_off), 0, app_cb.callback_end_epoch,NULL);
     }
-    
-    // else end_epoch
-    
+        
 }
 
 void
 end_epoch_callback(struct rtimer *t, void *ptr){
-    //NETSTACK_RADIO.off();
     uint8_t num_nbr = 0;
     uint8_t iterator = 0;
 
-    // iterate over discovered_neighbour array
+    /* iterate over discovered_neighbour array */
     for(iterator = 0; iterator < MAX_NBR ; iterator++){
       if (discovered_neighbour[iterator]){
         num_nbr ++;
       }
-      // Initialize vector elem
+      /* Initialize vector elem */
       discovered_neighbour[iterator] = false;
     }
     
     app_cb.nd_epoch_end(epoch, num_nbr);
     epoch++;
     
-    // restart process
+    /* restart process */
     printf("Restart process\n");
     curr_task = 0;
     if(epoch<max_epoch_num){
@@ -178,14 +171,13 @@ nd_start(uint8_t mode, const struct nd_callbacks *cb)
     }
 }
 /*---------------------------------------------------------------------------*/
-//process thread
+/* process threads */
 
 PROCESS_THREAD(burst_proc, ev, data)
 {
     PROCESS_BEGIN();
     static struct rtimer rt_off;
 
-    
     bool we_are_sending = 0;
     
     /* next turn radio on */
@@ -196,7 +188,6 @@ PROCESS_THREAD(burst_proc, ev, data)
     while (RTIMER_CLOCK_LT(RTIMER_NOW(), next)) {
         if( we_are_sending==0){
             we_are_sending = 1;
-            //packetbuf_clear();
             NETSTACK_RADIO.send(&node_id, sizeof(uint8_t));
             we_are_sending = 0;
             num_packets++;
@@ -204,13 +195,11 @@ PROCESS_THREAD(burst_proc, ev, data)
         rtimer_clock_t rnow = RTIMER_NOW();
         
         /* wait next transmission */
-        while (RTIMER_CLOCK_LT( RTIMER_NOW(), rnow + RTIMER_SECOND / 150)) {};
+        while (RTIMER_CLOCK_LT( RTIMER_NOW(), rnow + RTIMER_SECOND / 350)) {};
     }
     
     printf("Sent Packets: %d\n", num_packets);
-    
-    //NETSTACK_RADIO.on();
-    
+        
     /* schedule next turn-off */
     rtimer_set(&rt_off, RTIMER_NOW() + next_off, 0, app_cb.callback_turn_off,NULL);
     
@@ -223,21 +212,16 @@ PROCESS_THREAD(scatter_proc, ev, data)
     
     static struct rtimer rt_off;
     
-    //rtimer_clock_t next;
-    //rtimer_clock_t next_off = RTIMER_SECOND/num_task;
     next_send = RTIMER_SECOND/num_task;
     
-    // TURN ON RADIO
+    /* TURN ON RADIO */
     NETSTACK_RADIO.on();
     
-    // schedule next turn off
+    /* schedule next turn off */
     rtimer_set(&rt_off, RTIMER_NOW() + next_send, 0, app_cb.callback_send_packet,NULL);
     
   PROCESS_END();
 }
-
-
-
 
 /*---------------------------------------------------------------------------*/
 
