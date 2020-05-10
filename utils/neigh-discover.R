@@ -126,12 +126,14 @@ p <- tibble(nodeslabel, by_epoch$avg) %>%
   geom_label(aes(label = round(by_epoch$percentage, 2)), position = position_stack(vjust = 1.0)) +
   geom_text(aes(label = round(by_epoch$avg, 2)), color = "white", size = 4, position = position_stack(vjust = 0.5)) +
   scale_fill_manual(name = 'sign', values = c('1' = '#6FAA46')) +
-  ylab('Percentage') +
+  ylab('% of neighbours discovered in epoch') +
   xlab('Nodes') +
-  ggtitle('Neighbour Dicovery Rate') +
+  ggtitle( paste('ND Rate', mode, sep=" ")) +
   theme(plot.title = element_text(hjust = 0.5), legend.position = "none")
 
-ggsave(paste(res.folder, '/neigh_', mode , '.pdf', sep=''))# *************************************************
+ggsave(paste(res.folder, '/neigh_', mode , '.pdf', sep=''))
+
+# *************************************************
 # *
 # * DC analysis part
 # *
@@ -195,9 +197,9 @@ tibble(nodeslabel, dc.df$AVG_ON) %>%
   ggplot(aes(x =  reorder(nodeslabel, dc.df$config_nodes) , y = dc.df$AVG_ON)) +
   geom_col(aes(fill = col)) +
   geom_label(aes(label = round(dc.df$AVG_ON, 2)), position = position_stack(vjust = 1.0)) +
-  ylab('Percentage') +
+  ylab('% Radio ON over time') +
   xlab('Nodes') +
-  ggtitle('AVG ON') +
+  ggtitle( paste('ND Average Duty Cycle', mode, sep=" "))+
   ylim(0, 100) +
   theme(plot.title = element_text(hjust = 0.5), legend.position = "none")
 
