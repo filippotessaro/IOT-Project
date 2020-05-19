@@ -35,7 +35,7 @@ static uint8_t epoch = 0;
 /* it has to be less than 10 */
 static uint8_t curr_task = 0;
 
-static uint8_t num_task = 15;
+static uint8_t num_task = 20;
 
 /* max epoch iteration */
 static uint8_t max_epoch_num = 130;
@@ -195,10 +195,11 @@ PROCESS_THREAD(burst_proc, ev, data)
         rtimer_clock_t rnow = RTIMER_NOW();
         
         /* wait next transmission */
-        while (RTIMER_CLOCK_LT( RTIMER_NOW(), rnow + RTIMER_SECOND / 350)) {};
+        while (RTIMER_CLOCK_LT( RTIMER_NOW(), rnow + RTIMER_SECOND / 150)) {};
     }
     
     printf("Sent Packets: %d\n", num_packets);
+    NETSTACK_RADIO.on();
         
     /* schedule next turn-off */
     rtimer_set(&rt_off, RTIMER_NOW() + next_off, 0, app_cb.callback_turn_off,NULL);
