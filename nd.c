@@ -195,7 +195,8 @@ PROCESS_THREAD(burst_proc, ev, data)
         rtimer_clock_t rnow = RTIMER_NOW();
         
         /* wait next transmission */
-        while (RTIMER_CLOCK_LT( RTIMER_NOW(), rnow + RTIMER_SECOND / 150)) {};
+        while (RTIMER_CLOCK_LT( RTIMER_NOW(), rnow + RTIMER_SECOND / 150)
+               && RTIMER_CLOCK_LT(RTIMER_NOW(), next)) {};
     }
     
     printf("Sent Packets: %d\n", num_packets);
